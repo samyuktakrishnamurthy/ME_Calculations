@@ -8,23 +8,22 @@ import subprocess
 import numpy as np
 from ROOT import *
 import os
-
-#Minitree we are reading from
+import shutil, sys
+from array import array
 
 # defining th paths for different directories
 home2 = "/scratch/skrishna/"
 scratchArea = "/scratch/"
 
-#os.mkdir("skrishna")
 os.chdir(scratchArea)
 
+# defining th paths for different directories
 path_0jet_ggHZZ = "./Tar_ggH_4lep_0jet/SubProcesses/PV0_0_1_gg_h_epemepem/"
 path_1jet_ggHZZ = "./Tar_ggH_4lep_1jet/SubProcesses/PV0_0_1_gg_gh_gepemepem/"
 path_0jet_ggZZ = "./Tar_ggnoH_4lep_0jet/SubProcesses/PV0_0_1_gg_epemepem/"
 path_1jet_ggZZ = "./Tar_ggnoH_4lep_1jet/SubProcesses/PV0_0_1_gg_gepemepem"
 
-
-#Defining the TLorentzVectors
+#defining the TLorentzVectors
 lep1Z1 = TLorentzVector()
 lep2Z1 = TLorentzVector() 
 lep1Z2 = TLorentzVector()
@@ -37,57 +36,56 @@ lep2Z2_corr = TLorentzVector()
 
 #module that calculates the ME
 def Calculate_ME(i):
-    #define home
-    TarArea = scratchArea+"tmp_ggHZZ_sbi_"+str(i)
 
-    myfile = TFile('/home/net3/skrishna/minitrees/mc16d/mc16_13TeV.345706.Sherpa_222_NNPDF30NNLO_ggllll_130M4l.root')
+    TarArea = scratchArea+"tmp_VBF_sbi_16e_"+str(i)
+    myfile = TFile('/home/net3/skrishna/minitrees/mc16e/mc16_13TeV.364283.Sherpa_222_NNPDF30NNLO_lllljj_EW6.root')
+
     #get the minitree from the TFile and loop over the entries
     mytree = myfile.Get('tree_incl_all')
     entries = mytree.GetEntriesFast()
 
-    #output Tree with new branches
-    test = "mc16d_ggHZZ_130_sbi_" +str(i)+ ".root"
-    f = TFile(test,'RECREATE')
+    test = "mc16e_VBF_130_sbi" +str(i)+ ".root"
+    f = TFile(test,'recreate')
 
     #creating a new directory in the scratch area and moving there
-    if (os.path.isdir("tmp_ggHZZ_sbi_"+str(i))==True):
-        file_copy = "tmp_ggHZZ_sbi_"+str(i)
+    if (os.path.isdir("tmp_VBF_sbi_16e_"+str(i))==True):
+        file_copy = "tmp_VBF_sbi_16e_"+str(i)
         shutil.rmtree(file_copy)
        #shutil.rmtree("tmp_ggHZZ_"+str(i))
-    os.mkdir("tmp_ggHZZ_sbi_"+str(i))
-    os.chdir("tmp_ggHZZ_sbi_"+str(i))
+    os.mkdir("tmp_VBF_sbi_16e_"+str(i))
+    os.chdir("tmp_VBF_sbi_16e_"+str(i))
 
     #defining i/o files for check_sa.f to read and write to prevent overwriting
-    ps_input = TarArea + "/input_ggHZZ_sbi_"+str(i)+".input"
-    results = TarArea + "/output_ggHZZ_sbi_"+str(i)+".dat"
+    ps_input = TarArea + "/input_VBF_sbi_16e_"+str(i)+".input"
+    results = TarArea + "/output_VBF_sbi_16e_"+str(i)+".dat"
 
     #scping the MG code over to scratch and untaring the files
     subprocess.call(["scp", "abc-at13:/gpfs3/umass/HZZ/MG5_aMC_v3_0_0/ggH_4lep_0jet.tar.gz","./"])
-    subprocess.call(["scp", "abc-at13:/gpfs3/umass/HZZ/MG5_aMC_v3_0_0/ggH_4lep_1j.tar.gz","./"])
+#    subprocess.call(["scp", "abc-at13:/gpfs3/umass/HZZ/MG5_aMC_v3_0_0/ggH_4lep_1j.tar.gz","./"])
     subprocess.call(["scp", "abc-at13:/gpfs3/umass/HZZ/MG5_aMC_v3_0_0/ggnoH_4lep_0j.tar.gz","./"])
-    subprocess.call(["scp", "abc-at13:/gpfs3/umass/HZZ/MG5_aMC_v3_0_0/ggnoH_4lep_1j.tar.gz","./"])
-
+#   subprocess.call(["scp", "abc-at13:/gpfs3/umass/HZZ/MG5_aMC_v3_0_0/ggnoH_4lep_1j.tar.gz","./"])
+    
     subprocess.call(["tar","-xzf","ggH_4lep_0jet.tar.gz"])
-    subprocess.call(["tar","-xzf","ggH_4lep_1j.tar.gz"])
+#  subprocess.call(["tar","-xzf","ggH_4lep_1j.tar.gz"])
     subprocess.call(["tar","-xzf","ggnoH_4lep_0j.tar.gz"])
-    subprocess.call(["tar","-xzf","ggnoH_4lep_1j.tar.gz"])
+# subprocess.call(["tar","-xzf","ggnoH_4lep_1j.tar.gz"])
 
     #defining all the required variables for new branches
     ggHZZ_ME_0j = np.array([0.])
     ggHZZ_ME_1j = np.array([0.])
     ggZZ_ME_0j = np.array([0.])
     ggZZ_ME_1j = np.array([0.])
-
-    #cloning the old tree to get a new tree
+    
+    #Cloning the old tree to get the new tree
     newTree = mytree.CloneTree(0)
-    #adding all the new ME branches
-    newTree.Branch("ggHZZ_ME_0j", ggHZZ_ME_0j, 'ggHZZ_ME_0j/D')
-    newTree.Branch("ggHZZ_ME_1j", ggHZZ_ME_1j, 'ggHZZ_ME_1j/D')
-    newTree.Branch("ggZZ_ME_0j", ggZZ_ME_0j, 'ggZZ_ME_0j/D')
-    newTree.Branch("ggZZ_ME_1j", ggZZ_ME_1j, 'ggZZ_ME_1j/D')
+    #Adding all the new ME branches
+    newTree.Branch("ggHZZ_ME_0j", ggHZZ_ME_0j, "ggHZZ_ME_0j/D")
+    newTree.Branch("ggHZZ_ME_1j", ggHZZ_ME_1j, "ggHZZ_ME_1j/D")
+    newTree.Branch("ggZZ_ME_0j", ggZZ_ME_0j, "ggZZ_ME_0j/D")
+    newTree.Branch("ggZZ_ME_1j", ggZZ_ME_1j, "ggZZ_ME_1j/D")
    
     #Loop over entries in the tree
-    i_events = (i*500)
+    i_events = i*500
     for jentry in range(i_events, i_events+500):
         ientry = mytree.LoadTree(jentry)
         if ientry < 0:
@@ -95,24 +93,24 @@ def Calculate_ME(i):
         nb = mytree.GetEntry(jentry)
         if nb<=0:
             continue 
-
-        #Prepare 4-vectors for the two leptons of the first Z
+        #print jentry
+    # Prepare 4-vectors for the two leptons of the first Z
         lep1Z1.SetPtEtaPhiM(mytree.lepton_pt[0], mytree.lepton_eta[0], mytree.lepton_phi[0], 0)
-        lep2Z1.SetPtEtaPhiM(mytree.lepton_pt[1], mytree.lepton_eta[1], mytree.lepton_phi[1], 0)
-        #Prepare 4-vectors for the two leptons of the second Z
-        lep1Z2.SetPtEtaPhiM(mytree.lepton_pt[2], mytree.lepton_eta[2],mytree.lepton_phi[2], 0)
-        lep2Z2.SetPtEtaPhiM(mytree.lepton_pt[3], mytree.lepton_eta[3],mytree.lepton_phi[3], 0)
+        lep2Z1.SetPtEtaPhiM(mytree.lepton_pt[1], mytree.lepton_eta[1], mytree.lepton_phi[1], 0);
+    # Prepare 4-vectors for the two leptons of the second Z
+        lep1Z2.SetPtEtaPhiM(mytree.lepton_pt[2], mytree.lepton_eta[2],mytree.lepton_phi[2], 0);
+        lep2Z2.SetPtEtaPhiM(mytree.lepton_pt[3], mytree.lepton_eta[3],mytree.lepton_phi[3], 0);
         
         ggHZZ_ME_0j_value = 0.1
-        ggHZZ_ME_1j_value = 0.1
+        ggHZZ_ME_1j_value = 99
         ggZZ_ME_0j_value = 0.1
-        ggZZ_ME_1j_value = 0.1
-
+        ggZZ_ME_1j_value = 99
+        
         ########################
         #       0 JET ME       #
         ########################
         
-        if mytree.n_jets >=0: #this passes all evnents
+        if mytree.n_jets >=0 : #this passes all events
 
             #Reconstructing 0 jet higgs
             vecZ1= (lep1Z1 + lep2Z1)
@@ -126,58 +124,63 @@ def Calculate_ME(i):
             #Setting the gluons with pz as half the energy of the higgs
             gluon1.SetPxPyPzE(0,0,vecHiggs.M()/2, vecHiggs.M()/2)
             gluon2.SetPxPyPzE(0,0,-vecHiggs.M()/2, vecHiggs.M()/2)
-
-            #Correcting the fourth lepton fourvectors to impose energy-momentum conservation
+            
+             #Correcting the fourth lepton fourvectors to impose energy-momentum conservation
             lep2Z2_corr_px = - (lep1Z1.Px()+lep2Z1.Px()+lep1Z2.Px())
             lep2Z2_corr_py = - (lep1Z1.Py()+lep2Z1.Py()+lep1Z2.Py())
             lep2Z2_corr_pz = - (lep1Z1.Pz()+lep2Z1.Pz()+lep1Z2.Pz())
             lep2Z2_corr_e = np.sqrt(lep2Z2_corr_px**2+lep2Z2_corr_py**2+lep2Z2_corr_pz**2)
             lep2Z2_corr.SetPxPyPzE(lep2Z2_corr_px, lep2Z2_corr_py, lep2Z2_corr_pz, lep2Z2_corr_e);
-          
+
             #File to which the FV is written that is the input for the check_sa.f
             #Now written in the /scratch area!!
             FV_file = open(ps_input, "w")
 
-            #Output file for the Fourvectors
+             #Output file for the Fourvectors
             if lep1Z1.Px()==lep1Z1.Px():
                 FV_file.write('%f %f %f %f \n' %(gluon1.E(),gluon1.Px(), gluon1.Py(), gluon1.Pz()))
-                FV_file.write('%f %f %f %f \n' %(gluon2.E(),gluon2.Px(), gluon2.Py(), gluon2.Pz()))           
+                FV_file.write('%f %f %f %f \n' %(gluon2.E(),gluon2.Px(), gluon2.Py(), gluon2.Pz()))
                 FV_file.write('%f %f %f %f \n' %(lep1Z1.E(),lep1Z1.Px(), lep1Z1.Py(), lep1Z1.Pz()))
                 FV_file.write('%f %f %f %f \n' %(lep2Z1.E(),lep2Z1.Px(), lep2Z1.Py(), lep2Z1.Pz()))
-                FV_file.write('%f %f %f %f \n' %(lep1Z2.E(),lep1Z2.Px(), lep1Z2.Py(), lep1Z2.Pz())) 
+                FV_file.write('%f %f %f %f \n' %(lep1Z2.E(),lep1Z2.Px(), lep1Z2.Py(), lep1Z2.Pz()))
                 FV_file.write('%f %f %f %f \n' %(lep2Z2.E(),lep2Z2.Px(), lep2Z2.Py(), lep2Z2.Pz()))
-            FV_file.close()     
-           
-  
+            FV_file.close()
+
             ########################
-            #     ggHZZ ME-0j      #
+            #    ggHZZ ME-0j       #
             ########################     
-            
+            os.chdir(TarArea)
             #going to the right directory
-            os.chdir(path_0jet_ggHZZ)   
-     
+            os.chdir(path_0jet_ggHZZ)
+            
             #compile and calculate the ME
             subprocess.call(["make","clean"])
             subprocess.call(["make","check"])
-            subprocess.call(["./check",ps_input,results])
+            subprocess.call(["./check", ps_input,results])
             #Read the ME from the results file
-            file = open(results, "r")                
+            file = open(results, "r")
             outputLines = file.readlines()
             #getting the right line from the results file, and reading the ME value, 
             imp_line = outputLines[8]
-            ME_list1 = imp_line.split('         ')                
-            #print type(ME_list[1])
+            ME_list1 = imp_line.split('         ')
+            print("#####################################################################################################################################")
+            print imp_line
+            print ME_list1[1]
+            print float(ME_list1[1])
+            print("#####################################################################################################################################")
             ggHZZ_ME_0j_value = float(ME_list1[1])
+            #print ggHZZ_ME_0j_value
             os.remove(results)
             #going back to home directory to start another calculation
             os.chdir(TarArea)
-           
+                
             ########################
-            #     ggZZ ME-0j       #
+            #    ggZZ ME-0j        #
             ########################
             
             os.chdir(path_0jet_ggZZ)
             #compile and calculate the ME
+            subprocess.call(["make","clean"])
             subprocess.call(["make","check"])
             subprocess.call(["./check",ps_input,results])
             #Read the ME from the results file
@@ -186,27 +189,29 @@ def Calculate_ME(i):
             #getting the right line from the results file, and reading the ME value,
             imp_line = outputLines[8]
             ME_list2 = imp_line.split('         ')
-            #Print and check ME filling
-            ggZZ_ME_0j_value = float(ME_list2[1])                
-            os.remove(ps_input)
+            
+            ggZZ_ME_0j_value = float(ME_list2[1])
+            
             os.remove(results)
-               
-            if mytree.n_jets ==0 :
-                ggHZZ_ME_1j[0]=99.
-                ggZZ_ME_1j[0]=99.
+            os.remove(ps_input)
+            
+            if mytree.n_jets >=0 :
                 ggHZZ_ME_0j[0] = ggHZZ_ME_0j_value
                 ggZZ_ME_0j[0] = ggZZ_ME_0j_value
+                ggHZZ_ME_1j[0] = 99.
+                ggZZ_ME_1j[0] = 99.
                 newTree.Fill()
-               
-            os.chdir(TarArea)                   
-
-            
+        
+            #going back to home directory to start another calculation
+            os.chdir(TarArea)
+            """
+            Dont forget the if statement above for calculating 1 jet ME
             ########################
             #       1 JET ME       #
             ########################
             #picking one jet events here
             if mytree.n_jets >0 :
-                jet1.SetPtEtaPhiM(mytree.jet_pt[0], mytree.jet_eta[0], mytree.jet_phi[0], mytree.jet_m[0])
+                jet1.SetPtEtaPhiM(mytree.jet_pt[0], mytree.jet_eta[0], mytree.jet_phi[0], mytree.jet_m[0]);
                 #getting the Higgs Fv taking jets into account
                 vecZ1= (lep1Z1 + lep2Z1)
                 vecZ2= (lep1Z2 + lep2Z2)
@@ -221,16 +226,17 @@ def Calculate_ME(i):
                 gluon1.SetPxPyPzE(0,0,vecHiggs.M()/2, vecHiggs.M()/2)
                 gluon2.SetPxPyPzE(0,0,-vecHiggs.M()/2, vecHiggs.M()/2)        
                 #Correcting the jet fourvectors to impose energy-momentum conservation
+                #Correcting the jet fourvectors to impose energy-momentum conservation
                 jet1_corr_px = - (lep1Z1.Px()+lep2Z1.Px()+lep1Z2.Px()+lep2Z2.Px())
                 jet1_corr_py = - (lep1Z1.Py()+lep2Z1.Py()+lep1Z2.Py()+lep2Z2.Py())
                 jet1_corr_pz = - (lep1Z1.Pz()+lep2Z1.Pz()+lep1Z2.Pz()+lep2Z2.Pz())
                 jet1_corr_e = np.sqrt(jet1_corr_px**2+jet1_corr_py**2+ jet1_corr_pz**2)
                 jet1_corr.SetPxPyPzE(jet1_corr_px, jet1_corr_py, jet1_corr_pz, jet1_corr_e)
-                
+
                 #File to which the FV is written that is the input for the check_sa.f
                 #again, this is now in /scratch area!!
                 FV_file = open(ps_input, "w")
-
+                
                 #################################################
                 #Additional Energy momentum conservation check!!#
                 #################################################
@@ -247,70 +253,73 @@ def Calculate_ME(i):
                         FV_file.write('%f %f %f %f \n' %(lep1Z2.E(),lep1Z2.Px(), lep1Z2.Py(), lep1Z2.Pz()))
                         FV_file.write('%f %f %f %f \n' %(lep2Z2.E(),lep2Z2.Px(), lep2Z2.Py(), lep2Z2.Pz()))
                     FV_file.close()
-                        
+
                     ########################
-                    #     ggHZZ ME-1j      #
+                    #    ggHZZ ME-1j       #
                     ########################
             
                     #going to the right directory
                     os.chdir(path_1jet_ggHZZ)
+                    
                     #compile and calculate the ME
                     subprocess.call(["make","clean"])
                     subprocess.call(["make","check"])
-                    subprocess.call(["./check",ps_input,results])
+                    subprocess.call(["./check", ps_input,results])
                     #Read the ME from the results file
                     file = open(results, "r")
                     outputLines = file.readlines()
                     #getting the right line from the results file, and reading the ME value,
                     imp_line = outputLines[9]
                     ME_list3 = imp_line.split('         ')
-                    
-                    ggHZZ_ME_1j_value = float(ME_list3[1])                
+                
+                    ggHZZ_ME_1j_value = float(ME_list3[1])
+
                     os.remove(results)
-                    
                     os.chdir(TarArea)
-     
                     ########################
                     #     ggZZ ME-1j       #
                     ########################
-            
+                
                     #going to the right directory
                     os.chdir(path_1jet_ggZZ)
                     #compile and calculate the ME
                     subprocess.call(["make","clean"])
                     subprocess.call(["make","check"])
-                    subprocess.call(["./check",ps_input,results])
+                    subprocess.call(["./check", ps_input,results])
                     #Read the ME from the results file
                     file = open(results, "r")
                     outputLines = file.readlines()
                     #getting the right line from the results file, and reading the ME value,
                     imp_line = outputLines[9]
                     ME_list4 = imp_line.split('         ')
-                    #print type(ME_list[1])
-                    ggZZ_ME_1j_value = float(ME_list4[1])                
+                    
+                    ggZZ_ME_1j_value = float(ME_list4[1])
                     os.remove(ps_input)
                     os.remove(results)
-                #Fill the tree with ME            
-                ggHZZ_ME_0j[0] = ggHZZ_ME_0j_value
-                ggZZ_ME_0j[0] = ggZZ_ME_0j_value
-                ggHZZ_ME_1j[0] = ggHZZ_ME_1j_value
-                ggZZ_ME_1j[0] = ggZZ_ME_1j_value
-                newTree.Fill() 
-
-   
-        print("######################################################################################################################################")
+                    
+                    
+                    #Fill the tree with ME
+                    ggHZZ_ME_0j[0] = ggHZZ_ME_0j_value
+                    ggZZ_ME_0j[0] = ggZZ_ME_0j_value
+                    ggHZZ_ME_1j[0] = ggHZZ_ME_1j_value
+                    ggZZ_ME_1j[0] = ggZZ_ME_1j_value
+                    newTree.Fill()
+                    """
+    
+            
+        print("#####################################################################################################################################")
         print(newTree.ggHZZ_ME_0j)
         print(newTree.ggZZ_ME_0j)
         print(newTree.ggHZZ_ME_1j)
         print(newTree.ggZZ_ME_1j)
-        os.chdir(TarArea)
-
-    os.chdir(scratchArea)
-          
+        
+        os.chdir(TarArea)    
+        os.chdir(scratchArea)
+        
     f.Write()
     f.Close()
 
-    file_1 = "tmp_ggHZZ_sbi_"+str(i)
+    file_1 = "tmp_VBF_sbi_16e_"+str(i)
     subprocess.call(["rm","-rf",file_1])
     #os.remove(file_1)
 
@@ -319,7 +328,7 @@ def Calculate_ME(i):
     #subprocess.call("ls")
 
     #copy the tree back to gpfs
-    subprocess.call(["scp", minitree ,"abc-at13:/gpfs3/umass/HZZ/MG5_aMC_v3_0_0/test_copied_trees/sbi/mc16d/"])
+    subprocess.call(["scp", minitree ,"abc-at13:/gpfs3/umass/HZZ/MG5_aMC_v3_0_0/test_copied_trees/VBF/mc16e/"])
     subprocess.call(["rm","-rf",test])
 
 
